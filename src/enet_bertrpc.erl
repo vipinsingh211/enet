@@ -7,7 +7,7 @@
 %%%-------------------------------------------------------------------
 -module(enet_bertrpc).
 
--include_lib("proper/include/proper.hrl").
+%% -include_lib("proper/include/proper.hrl").
 
 %% API
 -export([decode/1
