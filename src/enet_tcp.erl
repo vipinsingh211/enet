@@ -31,13 +31,13 @@ decode(<<Src:16/big, Dst:16/big,
         Window:16/big,
         Csum:16/big, UrgPointer:16/big,
         Data/binary>> = Pkt,
-       [IPH = #ip_pseudo_hdr{} | _DecodeOpts]) ->
+       [IPH = #ip_pseudo_hdr{} | DecodeOpts]) ->
     HeaderLen = ?TCP_OPTS_ALIGNMENT*DataOffset,
     OptsLen = HeaderLen - ?TCP_HEADER_MIN_LEN,
     <<Options:OptsLen/binary,
       TcpData/binary>> = Data,
-    #tcp{src_port=decode_port(Src)
-         ,dst_port=decode_port(Dst)
+    #tcp{src_port=decode_port(Src,DecodeOpts)
+         ,dst_port=decode_port(Dst,DecodeOpts)
          ,seq_no=Sequence
          ,ack_no=AckNo
          ,data_offset=DataOffset
@@ -55,6 +55,12 @@ decode(_Packet, _DecodeOpts) ->
 
 decode_port(Port) ->
     enet_services:decode_port(tcp, Port).
+
+decode_port(Port,Opts) ->
+    case proplists:get_bool(nolookup, Opts) of
+	true -> Port;
+	false -> enet_services:decode_port(tcp, Port)
+    end.
 
 encode(#tcp{src_port=Src
             ,dst_port=Dst

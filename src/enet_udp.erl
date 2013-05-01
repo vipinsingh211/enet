@@ -27,14 +27,16 @@ decode(<<Src:16/big, Dst:16/big,
         Data/binary>> = Pkt,
        [IPH = #ip_pseudo_hdr{} | DecodeOpts])
   when byte_size(Data) =:= Length - ?UDP_HEADER_LEN ->
-    Udp = #udp{src_port=decode_port(Src),
-               dst_port=decode_port(Dst),
+    Udp = #udp{src_port=decode_port(Src,DecodeOpts),
+               dst_port=decode_port(Dst,DecodeOpts),
                length=Length,
                csum=check_sum(Csum, IPH, Length, Pkt)},
-    case Udp#udp.dst_port of
-        Dns when Dns =:= <<"dns">>; Dns =:= <<"mdns">> ->
-            Udp#udp{data=enet_dns:decode(Data, DecodeOpts)};
-        _ ->
+    case Dst of
+	53 ->
+	    Udp#udp{data=enet_dns:decode(Data, DecodeOpts)};
+	5353 ->
+	    Udp#udp{data=enet_dns:decode(Data, DecodeOpts)};
+	_ ->
             Udp#udp{data=Data}
     end;
 decode(_Packet, _DecodeOpts) ->
@@ -95,6 +97,12 @@ encode(Pkt, O) ->
 
 decode_port(Port) ->
     enet_services:decode_port(udp, Port).
+
+decode_port(Port,Opts) ->
+    case proplists:get_bool(nolookup, Opts) of
+	true -> Port;
+	false -> enet_services:decode_port(udp, Port)
+    end.
 
 encode_port(Port) ->
     enet_services:encode_port(udp, Port).
