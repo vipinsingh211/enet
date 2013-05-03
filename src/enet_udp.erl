@@ -31,14 +31,12 @@ decode(<<Src:16/big, Dst:16/big,
                dst_port=decode_port(Dst,DecodeOpts),
                length=Length,
                csum=check_sum(Csum, IPH, Length, Pkt)},
-    case Dst of
-	53 ->
-	    Udp#udp{data=enet_dns:decode(Data, DecodeOpts)};
-	5353 ->
-	    Udp#udp{data=enet_dns:decode(Data, DecodeOpts)};
-	_ ->
-            Udp#udp{data=Data}
-    end;
+    Data1 = if Dst =:= 53; Dst =:= 5353 ->
+		    enet_codec:decode(dns, Data, DecodeOpts);
+	       true ->
+		    Data
+	    end,
+    Udp#udp{data=Data1};
 decode(_Packet, _DecodeOpts) ->
     {error, bad_packet}.
 

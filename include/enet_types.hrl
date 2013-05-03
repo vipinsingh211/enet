@@ -4,6 +4,12 @@
 
 -type ethernet_address() :: list() | << _:48 >>.
 -type ethertype() :: atom() | 0..65535.
+-type uint16() :: 16#0000..16#ffff.
+-type uint8()  :: 16#00..16#ff.
+
+-define(is_uint8(X),  (((X) band (bnot 16#ff)) =:= 0)).
+-define(is_uint16(X), (((X) band (bnot 16#ffff)) =:= 0)).
+
 
 -record(eth, {src :: ethernet_address()
               ,dst :: ethernet_address()
@@ -13,7 +19,8 @@
 
 -type ip_proto() :: atom() | 0..255.
 -type ip_address() :: ipv4_address() | ipv6_addr().
--type ipv4_address() :: string() | << _:32 >> | 'localhost'.
+-type ipv4_address() :: localhost | << _:32 >> | 
+			{uint8(),uint8(),uint8(),uint8()}.
 -type arp_op() :: 'request' | 'reply' | 0..65535.
 -type l3_proto() :: atom() | 0..65535.
 
@@ -100,7 +107,9 @@
 -record(null, {type :: af_type(),
                data :: term()}).
 
--type ipv6_addr() :: localhost | << _:128 >>.
+-type ipv6_addr() :: localhost | << _:128 >> | 
+		     {uint16(),uint16(),uint16(),uint16(),
+		      uint16(),uint16(),uint16(),uint16()}.
 
 -record(ipv6, {version = 6,
                traffic_class :: non_neg_integer(),

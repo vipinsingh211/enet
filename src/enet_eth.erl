@@ -70,25 +70,28 @@ default_options() -> [].
 decode_type(16#0800) -> ipv4;
 decode_type(16#0806) -> arp;
 decode_type(16#0835) -> rarp;
-decode_type(16#86DD) -> ipv6.
+decode_type(16#86DD) -> ipv6;
+decode_type(16#8100) -> vlan;
+decode_type(Code) -> Code.
 
 encode_type(ipv4) -> 16#0800;
-encode_type(arp) -> 16#0806;
+encode_type(arp)  -> 16#0806;
 encode_type(rarp) -> 16#0835;
-encode_type(ipv6) -> 16#86DD.
+encode_type(ipv6) -> 16#86DD;
+encode_type(vlan) -> 16#8100;
+encode_type(Code) when ?is_uint16(Code) -> Code.
 
-decode_addr(<<16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF>>) -> broadcast;
-decode_addr(B) when is_binary(B) ->
-    string:join([ case erlang:integer_to_list(N, 16) of
-                      [C] -> [$0, C];
-                      L -> L
-                  end
-                  || <<N:8>> <= B], ":").
 
-encode_addr(broadcast) -> <<16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF>>;
+decode_addr(B) when is_binary(B), byte_size(B) =:= 6 ->
+    list_to_tuple([X || <<X:8>> <= B]).
+
+encode_addr(broadcast) -> 
+    <<16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF>>;
 encode_addr(A) when is_binary(A), byte_size(A) =:= 6 -> A;
+encode_addr({A,B,C,D,E,F}) -> 
+    <<A,B,C,D,E,F>>;
 encode_addr(L) when is_list(L) ->
-    << << (erlang:list_to_integer(Oct, 16)):8 >>
+    << << (erlang:list_to_integer(Oct,16)):8 >>
        || Oct <- string:tokens(L, ":") >>.
 
 addr_len() -> 6.

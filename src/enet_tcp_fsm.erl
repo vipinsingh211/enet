@@ -73,7 +73,7 @@ update(TS, #tcp{syn=true, ack=true, data = <<>>,
                   s2c=S2CPart#part{isn=S2C_ISN,
                                    start_time=TS}};
 
-update(TS, Pkt = #tcp{syn=false, ack=true, fin=Fin},
+update(TS, Pkt = #tcp{syn=false, ack=true, fin=_Fin},
        S0 = #tcp_stream{state=established}) ->
     Direction = direction(Pkt, S0),
     update(Direction, TS, Pkt, S0);
@@ -208,9 +208,10 @@ analyze(Module, {Stream, Offsets}, Idx, Relacks) when Idx < byte_size(Stream) ->
     end;
 analyze(_, _, _, _) -> [].
 
-oddballs(Offsets) ->
-    [ {TS, Type} || {TS, Type, _, _} <- Offsets,
-                    Type =/= normal, Type =/= syn ].
+%%
+%% oddballs(Offsets) ->
+%%    [ {TS, Type} || {TS, Type, _, _} <- Offsets,
+%%                    Type =/= normal, Type =/= syn ].
 
 analyze_timing({StartIdx, StopIdx}, Offsets, Relacks) ->
     StartTS = earliest_offset(StartIdx, Offsets),
@@ -222,11 +223,11 @@ earliest_offset(StartIdx, Offsets) ->
                      I =< StartIdx,
                      StartIdx =< J]).
 
-latest_ack(StopIdx, Relacks) ->
-    EarliestAck = lists:min([ Ack || {Ack, _} <- Relacks,
-                                     Ack >= StopIdx ]),
-    lists:max([ TS || {Ack, TS} <- Relacks,
-                      Ack =:= EarliestAck]).
+%% latest_ack(StopIdx, Relacks) ->
+%%    EarliestAck = lists:min([ Ack || {Ack, _} <- Relacks,
+%%                                     Ack >= StopIdx ]),
+%%    lists:max([ TS || {Ack, TS} <- Relacks,
+%%                      Ack =:= EarliestAck]).
 
 earliest_ack(Idx, Relacks) ->
     EarliestAck = lists:min([ Ack || {Ack, _} <- Relacks,

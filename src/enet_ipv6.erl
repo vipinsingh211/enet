@@ -47,11 +47,13 @@ payload(#ipv6{payload=D}) -> D.
 %% Internal functions
 %%====================================================================
 
-decode_addr(<<1:128/big>>) -> localhost;
-decode_addr(B) when is_binary(B) -> B.
+decode_addr(B) -> list_to_tuple([X || <<X:16>> <= B ]).
 
 encode_addr(localhost) -> <<1:128/big>>;
-encode_addr(B) when is_binary(B), byte_size(B) =:= 16 -> B.
+encode_addr({A,B,C,D,E,F,G,H}) ->
+    <<A:16,B:16,C:16,D:16,E:16,F:16,G:16,H:16>>;
+encode_addr(B) when is_binary(B), byte_size(B) =:= 16 -> 
+    B.
 
 addr_len() -> 16.
 

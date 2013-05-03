@@ -57,14 +57,21 @@ module(pcap_pkt) -> module(pcap);
 module(_) -> {error, unknown_packet_type}.
 
 decode(Type, Data, Options) ->
-    TypesToDecode = proplists:get_value(decode_types, Options, [Type]),
-    case TypesToDecode =:= all orelse lists:member(Type, TypesToDecode) of
+    DecodeTypes    = proplists:get_value(decode_types, Options, []),
+    IgnoreTypes = proplists:get_value(ignore_types, Options, []),
+    case (not lists:member(Type,IgnoreTypes)) andalso
+	(DecodeTypes =:= all orelse lists:member(Type, DecodeTypes)) of
         true ->
-            {Mod, MOpts} = mod_options(Type, Options),
-            true = Mod =/= error,
-            case Mod:decode(Data, MOpts) of
-                {error, _} -> Data;
-                Decoded -> Decoded
+	    case mod_options(Type, Options) of
+		{error,unknown_packet_type} ->
+		    Data;
+		{error,_Error} ->
+		    Data;
+		{Mod, MOpts} ->
+		    case Mod:decode(Data, MOpts) of
+			{error, _} -> Data;
+			Decoded -> Decoded
+		    end
             end;
         false -> Data
     end.
@@ -158,7 +165,10 @@ mod_options(Type, Options) ->
     case module(Type) of
         {error, _} = E -> E;
         Mod when is_atom(Mod) ->
-            Defaults = try Mod:default_options()
-                       catch _:_ -> Options end,
-            {Mod, proplists:get_value(Mod, Options, Defaults)}
+            Defaults = try Mod:default_options() of
+			   Ds -> Ds
+		       catch
+			   error:_ -> []
+		       end,
+            {Mod, proplists:get_value(Mod, Options, Defaults++Options)}
     end.

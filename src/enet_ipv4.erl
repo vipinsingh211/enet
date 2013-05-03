@@ -142,10 +142,11 @@ encode(Pkt, Options) ->
 
 addr_len() -> 4.
 
-decode_addr(<<127,0,0,1>>) -> localhost;
-decode_addr(B) when is_binary(B) -> B.
+decode_addr(<<A,B,C,D>>) -> {A,B,C,D}.
+
 encode_addr(localhost) -> <<127,0,0,1>>;
-encode_addr(B) when is_binary(B) -> B.
+encode_addr({A,B,C,D}) -> <<A,B,C,D>>;
+encode_addr(B) when is_binary(B), byte_size(B) =:= 4 -> B.
 
 addr_to_list(B) when is_binary(B) ->
     string:join([ erlang:integer_to_list(N) || <<N:8>> <= B], ".").
@@ -420,8 +421,10 @@ decode_protocol(130) -> sps;
 decode_protocol(131) -> pipe;
 decode_protocol(132) -> sctp;
 decode_protocol(133) -> fc;
-decode_protocol(254) -> divert.
+decode_protocol(254) -> divert;
+decode_protocol(P) when ?is_uint8(P) -> P.
 
+     
 encode_protocol(ip)            -> 0;
 encode_protocol(icmp)          -> 1;
 encode_protocol(igmp)          -> 2;
@@ -551,7 +554,9 @@ encode_protocol(sps)           -> 130;
 encode_protocol(pipe)          -> 131;
 encode_protocol(sctp)          -> 132;
 encode_protocol(fc)            -> 133;
-encode_protocol(divert)        -> 254.
+encode_protocol(divert)        -> 254;
+encode_protocol(P) when ?is_uint8(P) -> P.
+    
 
 payload_type(#ipv4{proto=P}, _) -> P.
 payload(#ipv4{data=D}, _) -> D.
