@@ -84,6 +84,19 @@ encode(Pkt) ->
 
 decode_type({8, 0}) -> echo_request;
 decode_type({0, 0}) -> echo_reply;
+
+decode_type({3, 0}) -> unreach_net;
+decode_type({3, 1}) -> unreach_host;
+decode_type({3, 2}) -> unreach_protocol;
+decode_type({3, 3}) -> unreach_port;
+decode_type({3, C}) -> {unreach,C};
+decode_type({4, _}) -> source_quench;
+decode_type({5, 0}) -> redirect_net;
+decode_type({5, 1}) -> redirect_host;
+decode_type({5, 2}) -> redirect_tosnet;
+decode_type({5, 3}) -> redirect_toshost;
+decode_type({5, C}) -> {redirect,C};
+%% add more...
 decode_type({Type, Code}) -> {Type, Code}.
 
 encode_type(echo_request) -> {8, 0};

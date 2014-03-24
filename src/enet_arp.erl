@@ -17,13 +17,17 @@
 %%====================================================================
 
 decode(<<HType:16/big, PType:16/big,
-        HAddrLen/big, PAddrLen/big,
+	 HAddrLen:8, PAddrLen:8,
         Oper:16/big,
         SndrHAddr:HAddrLen/binary,
         SndrPAddr:PAddrLen/binary,
         TargHAddr:HAddrLen/binary,
-        TargPAddr:PAddrLen/binary>>, _DecodeOpts) ->
+        TargPAddr:PAddrLen/binary,
+	 Junk/binary>>, _DecodeOpts) ->
     H = decode_htype(HType), P = decode_ptype(PType),
+    if Junk =/= <<>> -> io:format("arp got junk\n");
+       true -> ok
+    end,
     #arp{htype=H, ptype=P,
          haddrlen=HAddrLen, paddrlen=PAddrLen,
          op=decode_op(Oper),
