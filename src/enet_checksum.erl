@@ -15,7 +15,7 @@
 -export([oc16_0/1,oc16_0_sum/1]).
 -export([oc16_1/1,oc16_1_sum/1]).
 -export([oc16_2/1,oc16_2_sum/1]).
-%% benchmaek
+%% benchmark
 -export([bench/2]).
 -export([bench_loop_oc16_0/2]).
 -export([bench_loop_oc16_1/2]).
