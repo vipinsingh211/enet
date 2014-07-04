@@ -16,16 +16,18 @@
 %% API
 %%====================================================================
 
-decode(<<HType:16/big, PType:16/big,
+decode(Pkt = <<HType:16/big, PType:16/big,
 	 HAddrLen:8, PAddrLen:8,
         Oper:16/big,
         SndrHAddr:HAddrLen/binary,
         SndrPAddr:PAddrLen/binary,
         TargHAddr:HAddrLen/binary,
         TargPAddr:PAddrLen/binary,
-	 Junk/binary>>, _DecodeOpts) ->
+	Padding/binary>>, _DecodeOpts) ->
     H = decode_htype(HType), P = decode_ptype(PType),
-    if Junk =/= <<>> -> io:format("arp got junk\n");
+    if Padding =/= <<>>, (byte_size(Pkt)-byte_size(Padding)) > 32 -> 
+	    %% do not report padding
+	    io:format("arp got junk: ~w\n", [Padding]);
        true -> ok
     end,
     #arp{htype=H, ptype=P,
