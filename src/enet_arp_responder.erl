@@ -175,11 +175,11 @@ handle_arp_rx(IF, #eth{type=arp,data=Pkt}, State) ->
 
 handle_arp_rx(_IF,
               _Q = #arp{htype = ethernet,
-                       ptype = Type,
-                       op = request,
-                       sender = Sender = {SMac, _SAddr},
-                       target = {_TMac, TAddr}
-                      },
+			ptype = Type,
+			op = request,
+			sender = Sender = {SMac, _SAddr},
+			target = {_TMac, TAddr}
+		       },
               State) ->
     case cache_lookup(TAddr, State) of
         [] ->
