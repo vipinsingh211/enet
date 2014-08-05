@@ -82,8 +82,8 @@ encode_type(vlan) -> 16#8100;
 encode_type(Code) when ?is_uint16(Code) -> Code.
 
 
-decode_addr(B) when is_binary(B), byte_size(B) =:= 6 ->
-    list_to_tuple([X || <<X:8>> <= B]).
+decode_addr(<<A,B,C,D,E,F>>) ->
+    {A,B,C,D,E,F}.
 
 encode_addr(broadcast) -> 
     <<16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF>>;

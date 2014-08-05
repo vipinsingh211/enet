@@ -43,21 +43,23 @@ behaviour_info(_) -> undefined.
 %%====================================================================
 
 module(eth) -> enet_eth;
-module(ethernet) -> module(eth);
+module(ethernet) -> enet_eth;
 module(arp) -> enet_arp;
 module(ipv4) -> enet_ipv4;
 module(ipv6) -> enet_ipv6;
 module(udp) -> enet_udp;
 module(dns) -> enet_dns;
 module(icmp) -> enet_icmp;
+module(icmp6) -> enet_icmp6;
 module(tcp) -> enet_tcp;
 module(null) -> enet_nullink;
 module(pcap) -> enet_pcap;
-module(pcap_pkt) -> module(pcap);
+module(pcap_pkt) -> enet_pcap;
+module(dhcp) -> enet_dhcp;
 module(_) -> {error, unknown_packet_type}.
 
 decode(Type, Data, Options) ->
-    DecodeTypes    = proplists:get_value(decode_types, Options, []),
+    DecodeTypes = proplists:get_value(decode_types, Options, []),
     IgnoreTypes = proplists:get_value(ignore_types, Options, []),
     case (not lists:member(Type,IgnoreTypes)) andalso
 	(DecodeTypes =:= all orelse lists:member(Type, DecodeTypes)) of

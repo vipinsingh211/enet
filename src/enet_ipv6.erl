@@ -14,7 +14,7 @@
 
 -export([payload/1, payload_type/1]).
 
--include("enet_types.hrl").
+-include("../include/enet_types.hrl").
 
 %%====================================================================
 %% API
@@ -30,7 +30,8 @@ decode(<<6:4, % version
          Dest:16/binary,
          Payload:PayloadLength/binary>>, Options) ->
     Proto = enet_ipv4:decode_protocol(NextHdr),
-    PseudoHdr = #ip_pseudo_hdr{proto=NextHdr,src=Src,dst=Dest},
+    PseudoHdr = #ip_pseudo_hdr{proto=NextHdr,length=PayloadLength,
+			       src=Src,dst=Dest},
     #ipv6{src=decode_addr(Src),dst=decode_addr(Dest),
           traffic_class=TrafficClass, flow_label=FlowLabel,
           payload_len = PayloadLength, hop_count=HopCount,

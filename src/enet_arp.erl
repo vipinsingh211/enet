@@ -25,7 +25,7 @@ decode(<<HType:16/big, PType:16/big,
         TargPAddr:PAddrLen/binary,
 	 Junk/binary>>, _DecodeOpts) ->
     H = decode_htype(HType), P = decode_ptype(PType),
-    if Junk =/= <<>> -> io:format("arp got junk\n");
+    if Junk =/= <<>> -> io:format("arp got junk = ~p\n", [Junk]);
        true -> ok
     end,
     #arp{htype=H, ptype=P,

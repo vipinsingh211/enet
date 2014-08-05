@@ -9,15 +9,30 @@
 
 %% API
 -export([decode/2]).
+-export([encode/2]).
+
+-export([decode_x/2]).
 -export([encode_type/1, encode_class/1]).
 
--include_lib("kernel/src/inet_dns.hrl").
+-include("../include/enet_types.hrl").
 
 %%====================================================================
 %% API
 %%====================================================================
 
-decode(Msg = <<ID:16,
+decode(Msg, _DecodeOpts) ->
+    case inet_dns:decode(Msg) of
+	{ok, Dns} -> Dns;
+	{error,Reason} ->
+	    io:format("dns decode crashed: ~p\n", [Reason]),
+	    io:format("msg = ~1500p\n", [Msg]),
+	    {error,Reason}
+    end.
+
+encode(Dns, _EncodeOpts) ->
+    inet_dns:encode(Dns).
+
+decode_x(Msg = <<ID:16,
               QR:1,OPCODE:4,
               AA:1,TC:1,RD:1,RA:1,
               _Z:3,RCODE:4,
@@ -34,7 +49,11 @@ decode(Msg = <<ID:16,
     {Answers,AuthRest} = decode_answers(Msg, ANCOUNT, AnsRest),
     {Authorities,AddRest} = decode_authority(Msg, NSCOUNT, AuthRest),
     {Additionals,_} = decode_additional(Msg, ARCOUNT, AddRest),
-    [Header,Queries,Answers,Authorities,Additionals].
+    #dns_rec { header = Header,
+	   qdlist = Queries,
+	   anlist = Answers,
+	   nslist = Authorities,
+	   arlist = Additionals }.
     
 %%====================================================================
 %% Internal functions
@@ -47,11 +66,15 @@ decode_queries(Msg, Count, Rest) ->
 
 decode_queries(_Msg, 0, Rest, Acc) -> {Acc,Rest};
 decode_queries(Msg, Count, Rest, Acc) ->
-    {Name, <<QTYPE:16,QCLASS:16,QRest/binary>>} = decode_name(Msg, Rest),
-    Q = #dns_query{domain=Name,
-                   type=decode_type(QTYPE),
-                   class=decode_class(QCLASS)},
-    decode_queries(Msg, Count-1, QRest, Acc ++ [Q]).
+    case decode_name(Msg, Rest) of
+	{"", <<>>} -> %% strange, truncated? bad count?
+	    {Acc,Rest};
+	{Name, <<QTYPE:16,QCLASS:16,QRest/binary>>} ->
+	    Q = #dns_query{domain=Name,
+			   type=decode_type(QTYPE),
+			   class=decode_class(QCLASS)},
+	    decode_queries(Msg, Count-1, QRest, Acc ++ [Q])
+    end.
 
 %% Answers
 
@@ -60,16 +83,20 @@ decode_answers(Msg, Count, Rest) ->
 
 decode_answers(_Msg, 0, Rest, Acc) -> {Acc,Rest};
 decode_answers(Msg, Count, Rest, Acc) ->
-    {Name, <<Type:16,Class:16,TTL:32,
-            RDLen:16,RD:RDLen/binary,
-            RRest/binary>>} = decode_name(Msg, Rest),
-    RRType = decode_type(Type),
-    R = #dns_rr{domain=Name,
-                type=RRType,
-                class=decode_class(Class),
-                ttl=TTL,
-                data=decode_data(Msg, RRType, RD)},
-    decode_answers(Msg, Count-1, RRest, Acc ++ [R]).
+    case decode_name(Msg, Rest) of
+	{"", <<>>} -> %% strange, truncated? bad count?
+	    {Acc,Rest};
+	{Name, <<Type:16,Class:16,TTL:32,
+		 RDLen:16,RD:RDLen/binary,
+		 RRest/binary>>} ->
+	    RRType = decode_type(Type),
+	    R = #dns_rr{domain=Name,
+			type=RRType,
+			class=decode_class(Class),
+			ttl=TTL,
+			data=decode_data(Msg, RRType, RD)},
+	    decode_answers(Msg, Count-1, RRest, Acc ++ [R])
+    end.
 
 %% Authority
 

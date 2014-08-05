@@ -15,9 +15,10 @@
 
 %% API
 -export([start_link/0]).
--export([attach/2
-         ,eth_addr/2
-         ,ip_addr/2
+-export([attach/1
+	,attach/2
+	,eth_addr/2
+	,ip_addr/2
          ]).
 
 %% gen_server callbacks
@@ -124,7 +125,7 @@ handle_cast(Msg, State) ->
 %%        RX =:= promisc_rx ->
 %%     print([{dir, recv}, {raw, Frame}], State),
 %%     {noreply, State};
-handle_info({enet, IF, {RX, Frame, Pkt = #eth{type=arp}}}, State)
+handle_info({enet, IF, {RX, _Frame, Pkt = #eth{type=arp}}}, State)
   when RX =:= rx;
        RX =:= promisc_rx ->
     handle_arp_rx(IF, Pkt, State),
@@ -172,12 +173,12 @@ handle_arp_rx(IF, #eth{type=arp,data=Pkt}, State) ->
             ignore
     end;
 
-handle_arp_rx(IF,
-              Q = #arp{htype = ethernet,
+handle_arp_rx(_IF,
+              _Q = #arp{htype = ethernet,
                        ptype = Type,
                        op = request,
-                       sender = Sender = {SMac, SAddr},
-                       target = {TMac, TAddr}
+                       sender = Sender = {SMac, _SAddr},
+                       target = {_TMac, TAddr}
                       },
               State) ->
     case cache_lookup(TAddr, State) of

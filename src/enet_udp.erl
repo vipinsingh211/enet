@@ -31,14 +31,26 @@ decode(<<Src:16/big, Dst:16/big,
                dst_port=decode_port(Dst,DecodeOpts),
                length=Length,
                csum=check_sum(Csum, IPH, Length, Pkt)},
-    Data1 = if Dst =:= 53; Dst =:= 5353 ->
-		    enet_codec:decode(dns, Data, DecodeOpts);
-	       true ->
-		    Data
-	    end,
-    Udp#udp{data=Data1};
+    case udp_protocol(DecodeOpts, Src, Dst) of
+	undefined ->
+	    Udp#udp{data=Data};
+	Protocol ->
+	    Data1 = enet_codec:decode(Protocol, Data, DecodeOpts),
+	    Udp#udp{data=Data1}
+    end;
 decode(_Packet, _DecodeOpts) ->
     {error, bad_packet}.
+
+udp_protocol(DecodeOpts, Src, Dst) ->
+    DecodeFun = proplists:get_value(udp_protocol, DecodeOpts,
+				    fun default_udp_protocol/2),
+    DecodeFun(Src, Dst).
+
+default_udp_protocol(_Src, 53) -> dns;
+default_udp_protocol(_Src, 5353) -> dns;
+default_udp_protocol(68, 67) -> dhcp;
+default_udp_protocol(_, _) -> undefined.
+    
 
 expand(#udp{data=Data}, _) when not is_binary(Data) ->
     erlang:error({udp_payload_not_encoded, Data});
@@ -66,8 +78,11 @@ expand(Pkt = #udp{src_port=Src,
     PseudoPkt = <<Src:2/binary, Dst:2/binary,
                  Length:16/big, 0:16/big,
                  Data:DataLength/binary>>,
-    Sum = sum(PseudoPkt, Length, O),
-    expand(Pkt#udp{csum=Sum}, O);
+    Csum = case sum(PseudoPkt, Length, O) of
+	       16#0000 -> 16#ffff;
+	       Cs -> Cs
+	   end,
+    expand(Pkt#udp{csum=Csum}, O);
 expand(Pkt = #udp{src_port=Src,
                   dst_port=Dst,
                   length=Length,
@@ -105,7 +120,7 @@ decode_port(Port,Opts) ->
 encode_port(Port) ->
     enet_services:encode_port(udp, Port).
 
-check_sum(16#FFFF, _IPH, _Length, _Data) ->
+check_sum(16#0000, _IPH, _Length, _Data) ->
     no_checksum;
 check_sum(Csum, #ip_pseudo_hdr{src=Src, dst=Dst, proto=Proto},
           Length, Data)

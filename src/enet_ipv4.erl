@@ -27,7 +27,7 @@
          ,default_options/0
         ]).
 
--include("enet_types.hrl").
+-include("../include/enet_types.hrl").
 -define(IP_VERSION, 4).
 -define(IP_MIN_HDR_LEN, 5).
 
