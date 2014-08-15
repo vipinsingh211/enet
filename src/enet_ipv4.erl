@@ -82,7 +82,7 @@ expand(Pkt = #ipv4{proto=P, data=D,
        is_binary(Dst) ->
     Proto = encode_protocol(P),
     PsuedoHdr = #ip_pseudo_hdr{src=Src,dst=Dst,proto=Proto},
-    expand(Pkt#ipv4{data=enet_codec:encode(P, D, PsuedoHdr)});
+    expand(Pkt#ipv4{data=enet_codec:encode(P, D, [PsuedoHdr])});
 expand(Pkt = #ipv4{proto=P}) when not is_integer(P) ->
     expand(Pkt#ipv4{proto=encode_protocol(P)});
 expand(Pkt = #ipv4{totlen=T, hlen=H, data=D})
