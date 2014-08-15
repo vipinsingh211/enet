@@ -141,7 +141,7 @@ check_sum(Csum, #ip_pseudo_hdr{src=Src, dst=Dst, proto=Proto},
             0:24, Proto:8/big, Data/binary>>,
     enet_checksum:oc16_check(Pkt, Csum).
 
-sum(Data, Length, #ip_pseudo_hdr{src=Src, dst=Dst, proto=Proto})
+sum(Data, Length, [#ip_pseudo_hdr{src=Src, dst=Dst, proto=Proto}|_])
   when byte_size(Src) =:= byte_size(Dst),
        byte_size(Src) =:= 4 ->
     Pkt = <<Src:4/binary, Dst:4/binary, 0:8, Proto:8/big, Length:16/big,
