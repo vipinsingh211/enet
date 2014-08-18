@@ -69,10 +69,10 @@ expand(Pkt = #udp{dst_port=Dst}, O) when not is_binary(Dst);
 expand(Pkt = #udp{src_port=Src,
                   dst_port=Dst,
                   length=Length,
-                  csum=Csum,
+                  csum=_Csum,
                   data=Data}, O)
   when is_binary(Src), is_binary(Dst),
-       is_integer(Length), not is_integer(Csum),
+       is_integer(Length), not is_integer(_Csum),
        is_binary(Data) ->
     DataLength=Length - ?UDP_HEADER_LEN,
     PseudoPkt = <<Src:2/binary, Dst:2/binary,

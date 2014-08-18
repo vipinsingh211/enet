@@ -6,7 +6,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 -module(enet_checksum).
--compile(native).
+%% -compile(native).
 
 %% API
 -export([oc16/1,oc16_sum/1,oc16_check/2]).

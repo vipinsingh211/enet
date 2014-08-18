@@ -6,7 +6,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 -module(enet_tcp).
--compile(native).
+%% -compile(native).
 
 %% API
 -export([decode/2
@@ -66,7 +66,7 @@ encode(#tcp{src_port=Src
             ,dst_port=Dst
             ,seq_no=SeqNo
             ,ack_no=AckNo
-            ,data_offset=DataOffset
+            ,data_offset=_DataOffset
             ,reserved=Reserved
             ,urg=Urg, ack=Ack, psh=Psh
             ,rst=Rst, syn=Syn, fin=Fin
@@ -79,7 +79,7 @@ encode(#tcp{src_port=Src
   when is_binary(Src), is_binary(Dst),
        is_integer(SeqNo),
        is_integer(AckNo),
-       is_integer(DataOffset),
+       is_integer(_DataOffset),
        is_integer(Reserved),
        is_integer(Urg), is_integer(Ack), is_integer(Psh),
        is_integer(Rst), is_integer(Syn), is_integer(Fin),
@@ -297,18 +297,22 @@ sum(Data, Length, [#ip_pseudo_hdr{src=Src, dst=Dst, proto=Proto}|_])
     enet_checksum:oc16_sum(Pkt).
 
 encode_pkt_test() ->
-    ?assertMatch(B when is_binary(B),
-                 encode(#tcp{src_port = 58903,dst_port = <<"http">>,
-                             seq_no = 60622703,ack_no = 0,data_offset = 11,
-                             reserved = 0,urg = false,ack = false,psh = false,
-                             rst = false,syn = true,
-                             fin = false,window = 65535,
-                             csum = correct,urg_pointer = 0,
-                             options = [{mss,1460},
-                                        nop,
-                                        {window_size_shift,3},
-                                        nop,nop,
-                                        {timestamp,311329929,0},
-                                        sack_ok],
-                             data = <<>>},
-                        [{ip_pseudo_hdr,<<192,168,2,1>>,<<192,168,2,2>>,6}])).
+    ?assertMatch(B when is_binary(B), encode_test()).
+
+encode_test() ->
+    encode(#tcp{src_port = 58903,dst_port = <<"http">>,
+		seq_no = 60622703,ack_no = 0,data_offset = 11,
+		reserved = 0,urg = false,ack = false,psh = false,
+		rst = false,syn = true,
+		fin = false,window = 65535,
+		csum = correct,urg_pointer = 0,
+		options = [{mss,1460},
+			   nop,
+			   {window_size_shift,3},
+			   nop,nop,
+			   {timestamp,311329929,0},
+			   sack_ok],
+		data = <<>>},
+	   [#ip_pseudo_hdr{src = <<192,168,2,1>>,dst = <<192,168,2,2>>,
+			   proto=6}]).
+
