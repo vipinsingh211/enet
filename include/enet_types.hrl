@@ -7,6 +7,7 @@
 -type ethernet_address() :: list() | << _:48 >> |
 			    {uint8(),uint8(),uint8(),uint8(),uint8(),uint8()}.
 -type ethertype() :: atom() | 0..65535.
+-type uint32() :: 0..16#ffffffff.
 -type uint16() :: 16#0000..16#ffff.
 -type uint8()  :: 16#00..16#ff.
 
