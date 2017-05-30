@@ -9,6 +9,7 @@
 
 %% API
 -export([decode/2
+         ,decode_to_maps/2
          ,encode/1
          ,encode/2
          ,expand/1
@@ -35,6 +36,15 @@ decode(Pkt = <<Type, Code, Checksum:16/big,
           csum=enet_checksum:oc16_check(Pkt, Checksum),
           id=ID,seq=Sequence,
           data=Data}.
+
+decode_to_maps(Pkt = <<Type, Code, Checksum:16/big,
+              ID:16/big, Sequence:16/big,
+              Data/binary>>, _DecodeOpts) ->
+    IcmpType = decode_type({Type, Code}),
+    #{icmp=>#{type=>IcmpType,
+          csum=>enet_checksum:oc16_check(Pkt, Checksum),
+          id=>ID,seq=>Sequence,
+          data=>Data}}.
 
 expand(Pkt = #icmp{type=Type}) when is_atom(Type) ->
     expand(Pkt#icmp{type=encode_type(Type)});

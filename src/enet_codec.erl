@@ -70,7 +70,7 @@ decode(Type, Data, Options) ->
 		{error,_Error} ->
 		    Data;
 		{Mod, MOpts} ->
-		    case Mod:decode(Data, MOpts) of
+		    case Mod:decode_to_maps(Data, MOpts) of
 			{error, _} -> Data;
 			Decoded -> Decoded
 		    end

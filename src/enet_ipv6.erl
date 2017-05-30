@@ -8,7 +8,7 @@
 -module(enet_ipv6).
 
 %% API
--export([decode/2,
+-export([decode/2, decode_to_maps/2,
          decode_addr/1, encode_addr/1,
          addr_len/0]).
 
@@ -38,6 +38,26 @@ decode(<<6:4, % version
           next_hdr=Proto,
           payload=decode_payload(NextHdr, Payload, [], [PseudoHdr | Options])};
 decode(_Frame, _) ->
+    {error, bad_packet}.
+
+decode_to_maps(<<6:4, % version
+         TrafficClass:8,
+         FlowLabel:20/bits,
+         PayloadLength:16/big,
+         NextHdr:8,
+         HopCount:8,
+         Src:16/binary,
+         Dest:16/binary,
+         Payload:PayloadLength/binary>>, Options) ->
+    Proto = enet_ipv4:decode_protocol(NextHdr),
+    PseudoHdr = #{ip_pseudo_hdr=>#{proto=>NextHdr,length=>PayloadLength,
+			       src=>Src,dst=>Dest}},
+    #{ipv6=>#{src=>decode_addr(Src),dst=>decode_addr(Dest),
+          traffic_class=>TrafficClass, flow_label=>FlowLabel,
+          payload_len => PayloadLength, hop_count=>HopCount,
+          next_hdr=>Proto,
+          payload=>decode_payload(NextHdr, Payload, [], [PseudoHdr | Options])}};
+decode_to_maps(_Frame, _) ->
     {error, bad_packet}.
 
 payload_type(#ipv6{next_hdr=P}) -> P.

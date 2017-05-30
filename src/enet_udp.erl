@@ -9,6 +9,7 @@
 
 %% API
 -export([decode/2
+         ,decode_to_maps/2
          ,expand/2
          ,encode/2
          ,decode_port/1
@@ -39,6 +40,25 @@ decode(<<Src:16/big, Dst:16/big,
 	    Udp#udp{data=Data1}
     end;
 decode(_Packet, _DecodeOpts) ->
+    {error, bad_packet}.
+
+decode_to_maps(<<Src:16/big, Dst:16/big,
+        Length:16/big, Csum:16/big,
+        Data/binary>> = Pkt,
+       [IPH = #ip_pseudo_hdr{} | DecodeOpts])
+  when byte_size(Data) =:= Length - ?UDP_HEADER_LEN ->
+    Udp = #{udp=>#{src_port=>decode_port(Src,DecodeOpts),
+               dst_port=>decode_port(Dst,DecodeOpts),
+               length=>Length,
+               csum=>check_sum(Csum, IPH, Length, Pkt)}},
+    case udp_protocol(DecodeOpts, Src, Dst) of
+	undefined ->
+	    maps:merge(Udp, #{data=>Data});
+	Protocol ->
+	    Data1 = enet_codec:decode(Protocol, Data, DecodeOpts),
+	    maps:merge(Udp, #{data=>Data1})
+    end;
+decode_to_maps(_Packet, _DecodeOpts) ->
     {error, bad_packet}.
 
 udp_protocol(DecodeOpts, Src, Dst) ->

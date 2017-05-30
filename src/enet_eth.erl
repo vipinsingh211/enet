@@ -10,6 +10,7 @@
 %% API
 -behavior(enet_codec).
 -export([decode/2
+         ,decode_to_maps/2
          ,payload/2
          ,payload_type/2
          ,encode/2
@@ -35,6 +36,16 @@ decode(<<Dest:6/binary,
     #eth{src=decode_addr(Src),dst=decode_addr(Dest),
          type=PType,data=enet_codec:decode(PType,Data,Options)};
 decode(_Frame, _) ->
+    {error, bad_packet}.
+
+decode_to_maps(<<Dest:6/binary,
+        Src:6/binary,
+        Type:16/big,
+        Data/binary>>, Options) ->
+    PType = decode_type(Type),
+    #{eth=>#{src=>decode_addr(Src),dst=>decode_addr(Dest),
+         type=>PType,data=>enet_codec:decode(PType,Data,Options)}};
+decode_to_maps(_Frame, _) ->
     {error, bad_packet}.
 
 encode(P = #eth{src=Src}, Opts) when not is_binary(Src) ->

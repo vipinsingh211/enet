@@ -21,6 +21,7 @@
 %% API
 -behavior(enet_codec).
 -export([decode/2
+         ,decode_to_maps/2
          ,payload/2
          ,payload_type/2
          ,encode/2
@@ -61,6 +62,33 @@ decode(Dgram = <<?IP_VERSION:4, HLen:4, DiffServ:8, TotLen:16,
           data=enet_codec:decode(Protocol, Data,
                                  [ IPH | DecodeOptions ])};
 decode(_Dgram, _) ->
+    {error, bad_packet}.
+
+decode_to_maps(Dgram = <<?IP_VERSION:4, HLen:4, DiffServ:8, TotLen:16,
+                ID:16, Flgs:3/bits, FragOff:13, TTL:8, Proto:8, HdrChkSum:16,
+                SrcIP:4/binary, DestIP:4/binary, RestDgram/binary>>,
+      DecodeOptions)
+  when HLen >= 5, 4*HLen =< byte_size(Dgram) ->
+    OptsLen = 4 * (HLen - ?IP_MIN_HDR_LEN),
+    <<Opts:OptsLen/binary, Data/binary>> = RestDgram,
+    Protocol = decode_protocol(Proto),
+    IPH = #{ip_pseudo_hdr=>#{src=>SrcIP, dst=>DestIP, proto=>Proto}},
+    #{ipv4=>#{vsn=>?IP_VERSION,
+          hlen=>HLen,
+          diffserv=>DiffServ,
+          totlen=>TotLen,
+          id=>ID,
+          flags=>decode_flags(Flgs),
+          frag_offset=>FragOff,
+          ttl=>TTL,
+          proto=>Protocol,
+          hdr_csum=>check_header_checksum(Dgram, HLen, HdrChkSum),
+          src=>decode_addr(SrcIP),
+          dst=>decode_addr(DestIP),
+          options=>decode_options(Opts),
+          data=>enet_codec:decode(Protocol, Data,
+                                 [ IPH | DecodeOptions ])}};
+decode_to_maps(_Dgram, _) ->
     {error, bad_packet}.
 
 pseudo_hdr(#ipv4{src=SrcIP,dst=DestIP,proto=Proto}) ->

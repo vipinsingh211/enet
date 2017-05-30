@@ -10,6 +10,7 @@
 
 %% API
 -export([decode/2
+         ,decode_to_maps/2
          ,encode/2
          ,decode_port/1
          ,encode_port/1]).
@@ -51,6 +52,39 @@ decode(<<Src:16/big, Dst:16/big,
          ,data=TcpData
         };
 decode(_Packet, _DecodeOpts) ->
+    {error, bad_packet}.
+
+decode_to_maps(<<Src:16/big, Dst:16/big,
+        Sequence:32/big, AckNo:32/big,
+        DataOffset:4, Reserved:6,
+        Urg:1, Ack:1, Psh:1, Rst:1, Syn:1, Fin:1,
+        Window:16/big,
+        Csum:16/big, UrgPointer:16/big,
+        Data/binary>> = Pkt,
+       [IPH = #ip_pseudo_hdr{} | DecodeOpts]) ->
+    HeaderLen = ?TCP_OPTS_ALIGNMENT*DataOffset,
+    OptsLen = HeaderLen - ?TCP_HEADER_MIN_LEN,
+    <<Options:OptsLen/binary,
+      TcpData/binary>> = Data,
+    #{tcp=>#{src_port=>decode_port(Src,DecodeOpts)
+         ,dst_port=>decode_port(Dst,DecodeOpts)
+         ,seq_no=>Sequence
+         ,ack_no=>AckNo
+         ,data_offset=>DataOffset
+         ,reserved=>Reserved
+         ,urg=>decode_flag(Urg)
+         ,ack=>decode_flag(Ack)
+         ,psh=>decode_flag(Psh)
+         ,rst=>decode_flag(Rst)
+         ,syn=>decode_flag(Syn)
+         ,fin=>decode_flag(Fin)
+         ,window=>Window
+         ,csum=>check_sum(Csum, IPH, byte_size(Pkt), Pkt)
+         ,urg_pointer=>UrgPointer
+         ,options=>decode_options(Options)
+         ,data=>TcpData
+        }};
+decode_to_maps(_Packet, _DecodeOpts) ->
     {error, bad_packet}.
 
 decode_port(Port) ->

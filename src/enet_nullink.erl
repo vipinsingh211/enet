@@ -8,6 +8,7 @@
 %% API
 -behavior(enet_codec).
 -export([decode/2
+         ,decode_to_maps/2
          ,payload/2
          ,payload_type/2
          ,encode/2
@@ -29,6 +30,18 @@ decode(Frame, Options) ->
 decode(<<Type:32/little, Data/binary>>, OS = darwin, little, Options) ->
     LinkType = decode_type(OS, Type),
     #null{type=LinkType, data=enet_codec:decode(LinkType, Data, Options)}.
+
+decode_to_maps(Frame, Options) ->
+    {OS,End} = {proplists:get_value(os, Options, darwin),
+                proplists:get_value(endianness, Options, little)},
+    decode_to_maps(Frame,OS, End, Options).
+
+decode_to_maps(<<Type:32/little, Data/binary>>, OS = darwin, little, Options) ->
+    LinkType = decode_type(OS, Type),
+    #{null=>#{
+        type=>LinkType,
+        data=>enet_codec:decode(LinkType, Data, Options)
+    }}.
 
 
 encode(#null{type=LinkType, data=Data}, Options) when is_binary(Data) ->

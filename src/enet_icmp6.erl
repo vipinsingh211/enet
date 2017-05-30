@@ -9,6 +9,7 @@
 
 %% API
 -export([decode/2
+         ,decode_to_maps/2
          ,encode/1
          ,encode/2
          ,expand/1
@@ -30,6 +31,21 @@ decode(Pkt = <<Type, Code, Checksum:16/big,
 	    csum=enet_checksum:oc16_check(Pkt1, Checksum),
 	    id=ID,seq=Sequence,
 	    data=Data}.
+
+decode_to_maps(Pkt = <<Type, Code, Checksum:16/big,
+	       ID:16/big, Sequence:16/big,
+	       Data/binary>>, [IPH=#ip_pseudo_hdr{}|_DecodeOpts]) ->
+    IcmpType = decode_type(Type, Code),
+    
+    Pkt1 = <<(IPH#ip_pseudo_hdr.src)/binary,
+	     (IPH#ip_pseudo_hdr.dst)/binary,
+	     (IPH#ip_pseudo_hdr.length):32,
+	     0:24, (IPH#ip_pseudo_hdr.proto),
+	     Pkt/binary>>,
+    #{icmp6 =>#{type=>IcmpType,
+	    csum=>enet_checksum:oc16_check(Pkt1, Checksum),
+	    id=>ID,seq=>Sequence,
+	    data=>Data}}.
 
 
 expand(Pkt = #icmp6{type=Type}) when is_atom(Type) ->

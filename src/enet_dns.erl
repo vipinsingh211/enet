@@ -12,6 +12,7 @@
 -export([encode/2]).
 
 -export([decode_x/2]).
+-export([decode_to_maps/2]).
 -export([encode_type/1, encode_class/1]).
 
 -include("../include/enet_types.hrl").
@@ -54,6 +55,30 @@ decode_x(Msg = <<ID:16,
 	   anlist = Answers,
 	   nslist = Authorities,
 	   arlist = Additionals }.
+
+decode_to_maps(Msg = <<ID:16,
+              QR:1,OPCODE:4,
+              AA:1,TC:1,RD:1,RA:1,
+              _Z:3,RCODE:4,
+              QDCOUNT:16,ANCOUNT:16,
+              NSCOUNT:16,ARCOUNT:16,
+              Rest/binary>>, _DecodeOpts) ->
+    Header = #{dns_header=>#{id=>ID,
+                qr=>QR,
+                opcode=>OPCODE,
+                aa=>AA,tc=>TC,
+                rd=>RD,ra=>RA,
+                rcode=>RCODE}},
+    {Queries,AnsRest} = decode_queries(Msg, QDCOUNT, Rest),
+    {Answers,AuthRest} = decode_answers(Msg, ANCOUNT, AnsRest),
+    {Authorities,AddRest} = decode_authority(Msg, NSCOUNT, AuthRest),
+    {Additionals,_} = decode_additional(Msg, ARCOUNT, AddRest),
+    #{dns_rec =>#{ header => Header,
+	   qdlist => Queries,
+	   anlist => Answers,
+	   nslist => Authorities,
+	   arlist => Additionals }}.
+    
     
 %%====================================================================
 %% Internal functions

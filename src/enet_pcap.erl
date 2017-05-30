@@ -11,6 +11,7 @@
 -behavior(enet_codec).
 
 -export([decode/2
+         ,decode_to_maps/2
          ,payload/2
          ,payload_type/2
          ,encode/2
@@ -55,6 +56,9 @@
 
 decode(Data, #pcap_hdr{endianness=Endianness}) ->
     decode_packet(Endianness, Data).
+
+decode_to_maps(Data, #pcap_hdr{endianness=Endianness}) ->
+    decode_packet_to_maps(Endianness, Data).
 
 partial_decode(Data, #pcap_hdr{})
   when byte_size(Data) < 12 -> 12 - byte_size(Data);
@@ -319,6 +323,19 @@ decode_packet(#pcap_hdr{endianness=Endianness}, Data) ->
                   binary:decode_unsigned(TS_USecs, Endianness)},
               orig_len=binary:decode_unsigned(OrigLen, Endianness),
               data=Packet}.
+
+decode_packet_to_maps(#pcap_hdr{endianness=Endianness}, Data) ->
+    <<TS_Secs:4/binary,
+      TS_USecs:4/binary,
+      PktLen:4/binary,
+      OrigLen:4/binary,
+      Rest/binary>> = Data,
+    Length = binary:decode_unsigned(PktLen, unsigned),
+    <<Packet:Length/binary>> = Rest,
+    #{pcap_pkt=>#{ts=>{binary:decode_unsigned(TS_Secs, Endianness),
+                  binary:decode_unsigned(TS_USecs, Endianness)},
+              orig_len=>binary:decode_unsigned(OrigLen, Endianness),
+              data=>Packet}}.
 
 encode_packet(#pcap_hdr{endianness=End}, #pcap_pkt{} = P) ->
     encode_packet(End, P);

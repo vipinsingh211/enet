@@ -11,6 +11,7 @@
 
 %% API
 -export([decode/2]).
+-export([decode_to_maps/2]).
 -export([encode/2]).
 
 
@@ -39,6 +40,33 @@ decode(<<Op, Htype, Hlen, Hops,  Xid:32, Secs:16, Flags:16,
 	  sname   = c_string(Sname),
 	  file    = c_string(File),
 	  options = OptsList}.
+
+decode_to_maps(<<Op, Htype, Hlen, Hops,  Xid:32, Secs:16, Flags:16,
+	 Ciaddr:4/binary, Yiaddr:4/binary, Siaddr:4/binary, Giaddr:4/binary,
+	 Chaddr:6/binary, _:10/binary, Sname:64/binary, File:128/binary,
+	 Options/binary>>, _DecodeOpts) ->
+    OptsList = case Options of
+		   << ?DHCP_OPTIONS_COOKIE, Opts/binary>> ->
+		       binary_to_options(Opts);
+		   _ -> %% return empty list if the MAGIC is not there
+		       []
+	       end,
+    #{dhcp=>#{
+      op      => decode_op(Op),
+	  htype   => Htype,
+	  hlen    => Hlen,
+	  hops    => Hops,
+	  xid     => Xid,
+	  secs    => Secs,
+	  flags   => Flags,
+	  ciaddr  => enet_ipv4:decode_addr(Ciaddr),
+	  yiaddr  => enet_ipv4:decode_addr(Yiaddr),
+	  siaddr  => enet_ipv4:decode_addr(Siaddr),
+	  giaddr  => enet_ipv4:decode_addr(Giaddr),
+	  chaddr  => enet_eth:decode_addr(Chaddr),
+	  sname   => c_string(Sname),
+	  file    => c_string(File),
+	  options => OptsList}}.
 
 encode(D, _EncodeOpts) when is_record(D, dhcp) ->
     Op      = encode_op(D#dhcp.op),

@@ -8,7 +8,7 @@
 -module(enet_arp).
 
 %% API
--export([decode/2, encode/2]).
+-export([decode/2, decode_to_maps/2, encode/2]).
 
 -include("enet_types.hrl").
 
@@ -38,6 +38,30 @@ decode(Pkt = <<HType:16/big, PType:16/big,
          target={(enet_codec:module(H)):decode_addr(TargHAddr),
                  (enet_codec:module(P)):decode_addr(TargPAddr)}};
 decode(_Packet, _DecodeOpts) ->
+    {error, bad_packet}.
+
+decode_to_maps(Pkt = <<HType:16/big, PType:16/big,
+	 HAddrLen:8, PAddrLen:8,
+        Oper:16/big,
+        SndrHAddr:HAddrLen/binary,
+        SndrPAddr:PAddrLen/binary,
+        TargHAddr:HAddrLen/binary,
+        TargPAddr:PAddrLen/binary,
+	Padding/binary>>, _DecodeOpts) ->
+    H = decode_htype(HType), P = decode_ptype(PType),
+    if Padding =/= <<>>, (byte_size(Pkt)-byte_size(Padding)) > 32 -> 
+	    %% do not report padding
+	    io:format("arp got junk: ~w\n", [Padding]);
+       true -> ok
+    end,
+    #{arp=>#{htype=>H, ptype=>P,
+         haddrlen=>HAddrLen, paddrlen=>PAddrLen,
+         op=>decode_op(Oper),
+         sender=>{(enet_codec:module(H)):decode_addr(SndrHAddr),
+                 (enet_codec:module(P)):decode_addr(SndrPAddr)},
+         target=>{(enet_codec:module(H)):decode_addr(TargHAddr),
+                 (enet_codec:module(P)):decode_addr(TargPAddr)}}};
+decode_to_maps(_Packet, _DecodeOpts) ->
     {error, bad_packet}.
 
 encode(P = #arp{htype=ethernet,
